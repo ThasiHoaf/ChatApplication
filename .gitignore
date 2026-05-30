@@ -1,0 +1,18 @@
+### --- IDE Configurations --- ###
+.idea/
+.classpath
+.project
+*.iml
+
+### --- Build Artifacts (Java) --- ###
+bin/
+out/
+*.class
+
+### --- Local Database Sessions & Logs --- ###
+*_DB.session.sql
+*.log
+
+### --- Temporary & Large Data Files --- ###
+downloads/
+data/
