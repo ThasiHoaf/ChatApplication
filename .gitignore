@@ -16,3 +16,5 @@ out/
 ### --- Temporary & Large Data Files --- ###
 downloads/
 data/
+
+.github/
