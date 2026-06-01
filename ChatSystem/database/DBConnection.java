@@ -25,8 +25,11 @@ public class DBConnection {
             try {
                 // Chỉ load config khi cần tạo mới
                 Properties props = new Properties();
-                try (FileInputStream fis = new FileInputStream("ChatSystem/database/db.properties")) {
-                    props.load(fis);
+                try (java.io.InputStream is = DBConnection.class.getResourceAsStream("/ChatSystem/database/db.properties")) {
+                    if (is == null) {
+                        throw new IOException("db.properties not found in classpath");
+                    }
+                    props.load(is);
                 }
 
                 String url = props.getProperty("db.url");
