@@ -12,5 +12,6 @@ public enum MessageType {
     HISTORY_DELETE,
     FILE_MESSAGE,
     USER_LIST,
-    ERROR
+    ERROR, 
+    FILE_DOWNLOAD
 }
