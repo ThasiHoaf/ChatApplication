@@ -32,6 +32,7 @@ public class GroupPanel extends JPanel {
         this.identifier = identifier;
         this.isGroupChat = isGroup;
         this.clientManager = manager;
+        this.groupName = identifier;
 
         // History area
 
@@ -129,7 +130,7 @@ public class GroupPanel extends JPanel {
             }
             else {
                 Message message = new Message(MessageType.MESSAGE);
-                message.setGroupName(groupName); // groupName is actually the recipient's username in private chat
+                message.setTarget(groupName); // groupName is actually the recipient's username in private chat
                 message.setSender(user.getUserName());
                 message.setContent(content);
                 clientManager.sendMessage(message);
