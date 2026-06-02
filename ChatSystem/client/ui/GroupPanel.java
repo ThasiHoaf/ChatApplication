@@ -10,6 +10,10 @@ import ChatSystem.shared.*;
 
 
 public class GroupPanel extends JPanel {
+
+    private String identifier;
+    private boolean isGroupChat;
+
     private String groupName;
     private JButton sendBtn; 
     private JTextArea chatArea;
@@ -23,9 +27,10 @@ public class GroupPanel extends JPanel {
     private JList<String> fileList;
     private DefaultListModel<String> fileListModel;
 
-    public GroupPanel(ClientManager manager,String groupName, User user) {
+    public GroupPanel(ClientManager manager,String identifier, User user, boolean isGroup) {
         setLayout(new BorderLayout());
-        this.groupName = groupName;
+        this.identifier = identifier;
+        this.isGroupChat = isGroup;
         this.clientManager = manager;
 
         // History area
@@ -63,13 +68,15 @@ public class GroupPanel extends JPanel {
 
 
         // Member list
-        memberList = new DefaultListModel<>();
-        memberJList = new JList<>(memberList);
-        JPanel memberPanel = new JPanel(new BorderLayout());
-        memberPanel.add(new JLabel("Online User"), BorderLayout.NORTH);
-        memberPanel.add(new JScrollPane(memberJList), BorderLayout.CENTER);
-        memberPanel.setPreferredSize(new Dimension(150, 0));
-        add(memberPanel, BorderLayout.EAST);
+        if(isGroup){
+            memberList = new DefaultListModel<>();
+            memberJList = new JList<>(memberList);
+            JPanel memberPanel = new JPanel(new BorderLayout());
+            memberPanel.add(new JLabel("Online User"), BorderLayout.NORTH);
+            memberPanel.add(new JScrollPane(memberJList), BorderLayout.CENTER);
+            memberPanel.setPreferredSize(new Dimension(150, 0));
+            add(memberPanel, BorderLayout.EAST);
+        }
 
 
         // Control buttons
@@ -112,11 +119,22 @@ public class GroupPanel extends JPanel {
         sendBtn.addActionListener(e->{
             String content = inputField.getText();
             inputField.setText("");
-            Message message = new Message(MessageType.GROUP_MESSAGE);
-            message.setContent(content);
-            message.setSender(user.getUserName());
-            message.setGroupName(groupName);
-            clientManager.sendMessage(message);
+            if(this.isGroupChat){
+                
+                Message message = new Message(MessageType.GROUP_MESSAGE);
+                message.setGroupName(groupName);
+                message.setSender(user.getUserName());
+                message.setContent(content);
+                clientManager.sendMessage(message);
+            }
+            else {
+                Message message = new Message(MessageType.MESSAGE);
+                message.setGroupName(groupName); // groupName is actually the recipient's username in private chat
+                message.setSender(user.getUserName());
+                message.setContent(content);
+                clientManager.sendMessage(message);
+            }
+            
         });
 
         historyBtn.addActionListener(e->{

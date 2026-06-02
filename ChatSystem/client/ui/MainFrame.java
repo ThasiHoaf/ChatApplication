@@ -48,10 +48,14 @@ public class MainFrame extends JFrame {
     }
 
     public void addGroupTab(String groupName) {
-        GroupPanel groupPanel = new GroupPanel(clientManager, groupName, currentUser);
+        GroupPanel groupPanel = new GroupPanel(clientManager, groupName, currentUser, true);
         tabbedPane.addTab(groupName, groupPanel);
     }
 
+    public void addPrivateTab(String privateName){
+        GroupPanel privatePanel = new GroupPanel(clientManager, privateName, currentUser, false);
+        tabbedPane.addTab(privateName, privatePanel);
+    }
     public void setLobbyFileList(String listFile){
         lobbyPanel.setFileList(listFile);
     }
@@ -69,14 +73,31 @@ public class MainFrame extends JFrame {
 
     public void printGroupMessage(Message message) {
         String groupName = message.getGroupName();
-        // Duyệt qua các tab để tìm đúng GroupPanel có tên tương ứng
-        for (int i = 0; i < tabbedPane.getTabCount(); i++) {
-            if (tabbedPane.getTitleAt(i).equals(groupName)) {
-                Component comp = tabbedPane.getComponentAt(i);
-                if (comp instanceof GroupPanel) {
-                    ((GroupPanel) comp).setChatArea(message.getContent(), message.getSender());
+        String identifier = message.getTarget(); // target sẽ là groupName đối với tin nhắn nhóm, hoặc tên người gửi đối với tin nhắn riêng
+
+
+        if(identifier == null || identifier.isBlank()){
+            // Duyệt qua các tab để tìm đúng GroupPanel có tên tương ứng
+            for (int i = 0; i < tabbedPane.getTabCount(); i++) {
+                if (tabbedPane.getTitleAt(i).equals(groupName)) {
+                    Component comp = tabbedPane.getComponentAt(i);
+                    if (comp instanceof GroupPanel) {
+                        ((GroupPanel) comp).setChatArea(message.getContent(), message.getSender());
+                    }
+                    break;
                 }
-                break;
+            }
+        }
+        else {
+            // Đây là tin nhắn riêng, tìm tab có tên trùng với target (tên người gửi)
+            for (int i = 0; i < tabbedPane.getTabCount(); i++) {
+                if (tabbedPane.getTitleAt(i).equals(identifier)) {
+                    Component comp = tabbedPane.getComponentAt(i);
+                    if (comp instanceof GroupPanel) {
+                        ((GroupPanel) comp).setChatArea(message.getContent(), message.getSender());
+                    }
+                    break;
+                }
             }
         }
     }

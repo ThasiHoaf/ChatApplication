@@ -9,7 +9,8 @@ import ChatSystem.shared.*;
 
 
 public class LobbyPanel extends JPanel {
-        
+    
+    
     private ClientManager manager;
     private JButton createGroupBtn;
     private JButton joinGroupBtn;
@@ -18,7 +19,7 @@ public class LobbyPanel extends JPanel {
     private DefaultListModel<String> MemberListModel;
     private JList<String> fileList;
     private DefaultListModel<String> fileListModel;
-    private JTextField messageField;
+    private JTextArea messageField;
     private JButton sendBtn;
     private JTextArea chatArea;
     private JButton chooseFileBtn;
@@ -36,7 +37,10 @@ public class LobbyPanel extends JPanel {
         fileListModel = new DefaultListModel<>();
         fileList = new JList<>(fileListModel);
 
-        messageField = new JTextField();
+        messageField = new JTextArea(3, 20);
+        messageField.setLineWrap(true);
+        messageField.setWrapStyleWord(true);
+        messageField.setEditable(true);
 
         // initialize chat area before adding to scroll pane
         chatArea = new JTextArea();
@@ -95,6 +99,22 @@ public class LobbyPanel extends JPanel {
 
 
     private void setupEventListeners(){
+
+            messageField.addKeyListener(new java.awt.event.KeyAdapter() {
+            @Override
+            public void keyPressed(java.awt.event.KeyEvent evt) {
+                if (evt.getKeyCode() == java.awt.event.KeyEvent.VK_ENTER) {
+                    if (evt.isShiftDown()) {
+                        // Đang giữ Shift + Enter -> Cho phép JTextArea tự động xuống dòng
+                    } else {
+                        // Chỉ bấm Enter -> Gửi tin nhắn
+                        evt.consume(); // Chặn hành vi tạo dòng mới của Enter
+                        sendBtn.doClick(); // Gọi lệnh click nút Send
+                    }
+                }
+            }
+        });
+
         createGroupBtn.addActionListener(e -> {
             CreateGroupDialog createGroupDialog = new CreateGroupDialog(null, manager, user);
             createGroupDialog.setVisible(true);
@@ -145,14 +165,7 @@ public class LobbyPanel extends JPanel {
             
         });
 
-        sendBtn.addKeyListener(new java.awt.event.KeyAdapter() {
-            @Override
-            public void keyPressed(java.awt.event.KeyEvent evt) {
-                if (evt.getKeyCode() == java.awt.event.KeyEvent.VK_ENTER) {
-                    sendBtn.doClick();
-                }
-            }
-        });
+        
         historyBtn.addActionListener(e -> {
             // Clear global history view to avoid duplicates
             manager.clearHistoryView();
@@ -160,6 +173,18 @@ public class LobbyPanel extends JPanel {
             message.setSender(user.getUserName());
             
             manager.sendMessage(message);
+        });
+
+        memberList.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mouseClicked(java.awt.event.MouseEvent evt){
+                if(evt.getClickCount() == 2){
+                    Message message = new Message(MessageType.CREATE_GROUP);
+                    message.setSender(user.getUserName());
+                    message.setTarget(memberList.getSelectedValue());
+                    manager.sendMessage(message);
+                }
+            }
         });
 
         chooseFileBtn.addActionListener(e->{
@@ -185,6 +210,8 @@ public class LobbyPanel extends JPanel {
                 }
             }
         });
+
+        
 
     }
 

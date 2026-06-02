@@ -288,27 +288,47 @@ public class MessageRouter {
     private synchronized void handleCreateGroup(Message message, ClientHandler handler){
 
         String groupName = message.getGroupName();
-        String password = message.getContent();
-        String sender = message.getSender();
-        for (Group group : groupDAO.getGroups()){
-            if(group.getGroupName().equals(groupName)){
+        if(groupName == null || groupName.isBlank()){
+            String password = message.getContent();
+            String sender = message.getSender();
+            for (Group group : groupDAO.getGroups()){
+                if(group.getGroupName().equals(groupName)){
+                    Message errorMessage = new Message(MessageType.CREATE_GROUP);
+                    errorMessage.setSuccess(false);
+                    errorMessage.setInfo("Group name already exists");
+                    System.out.println("Group with name " + message.getGroupName() + " has already existed.");
+                    handler.sendMessage(errorMessage);
+                    return;
+                }
+            }
+            Group newGroup = new Group(groupName, sender,password);
+            groupDAO.addGroup(newGroup);
+            Message successMessage = new Message(MessageType.CREATE_GROUP);
+            successMessage.setSuccess(true);
+            successMessage.setInfo("Group created successfully");
+            System.out.println(message.getGroupName() + " created successfully");
+            handler.sendMessage(successMessage);
+            sessionManager.broadcast(successMessage);
+            return;
+        } else {
+            String target = message.getTarget();
+            Message privateMessage = new Message(MessageType.CREATE_GROUP);
+            privateMessage.setSender(message.getSender());
+            privateMessage.setTarget(target);
+            privateMessage.setSuccess(true);
+            privateMessage.setInfo("Private chat created successfully");
+            ClientHandler targetHandler = sessionManager.getHandler(target);
+            if (targetHandler != null) {
+                targetHandler.sendMessage(privateMessage);
+            } else {
                 Message errorMessage = new Message(MessageType.CREATE_GROUP);
                 errorMessage.setSuccess(false);
-                errorMessage.setInfo("Group name already exists");
-                System.out.println("Group with name " + message.getGroupName() + " has already existed.");
+                errorMessage.setInfo("Target user is offline");
                 handler.sendMessage(errorMessage);
-                return;
             }
+
         }
-        Group newGroup = new Group(groupName, sender,password);
-        groupDAO.addGroup(newGroup);
-        Message successMessage = new Message(MessageType.CREATE_GROUP);
-        successMessage.setSuccess(true);
-        successMessage.setInfo("Group created successfully");
-        System.out.println(message.getGroupName() + " created successfully");
-        handler.sendMessage(successMessage);
-        sessionManager.broadcast(successMessage);
-        return;
+
     }
 
     private void handleLogout(Message message, ClientHandler handler) {
@@ -385,29 +405,31 @@ public class MessageRouter {
     }
 
     private synchronized void handlePrivateMessage(Message message, ClientHandler handler) {
-        // 1. Save to database using messageDAO
-        // 2. Find target user via sessionManager.getHandler(message.getTarget())
-        // 3. If target is online, call targetHandler.sendMessage(message)
+        // 1. Lưu tin nhắn vào Database
+        messageDAO.addMessage(message);
+        message.setSuccess(true);
+        
+        String target = message.getTarget();
 
-
-        String sender = message.getSender();
-        String content = message.getContent();
-
-        Message succesMessage = new Message(MessageType.MESSAGE);
-        succesMessage.setSender(sender);
-        succesMessage.setContent(content);
-        succesMessage.setSuccess(true);
-        messageDAO.addMessage(succesMessage);
-        for (User user : userDAO.getUsers()){
-            ClientHandler activeClient = sessionManager.getHandler(user.getUserName());
-            if(activeClient != null){
-                activeClient.sendMessage(succesMessage);
+        if (target == null || target.trim().isEmpty()) {
+            // TRƯỜNG HỢP 1: Tin nhắn từ LobbyPanel (target rỗng) -> Gửi cho toàn bộ người dùng ĐANG ONLINE
+            for (String onlineUser : sessionManager.getOnlineUsers()) {
+                ClientHandler activeClient = sessionManager.getHandler(onlineUser);
+                if (activeClient != null) {
+                    activeClient.sendMessage(message);
+                }
             }
+            System.out.println(message.getSender() + " sent a message to Lobby.");
+        } else {
+            // TRƯỜNG HỢP 2: Tin nhắn riêng tư 1-1 -> Chỉ gửi cho đúng target
+            ClientHandler targetHandler = sessionManager.getHandler(target);
+            if (targetHandler != null) {
+                targetHandler.sendMessage(message);
+            }
+            
+            System.out.println(message.getSender() + " sent a private message to " + target);
         }
-
-        System.out.println(message.getSender() + " just has sent a message!");
-
-    }   
+    }
 
     private synchronized void handleGroupMessage(Message message, ClientHandler handler) {
         // 1. Save to database using messageDAO

@@ -173,15 +173,11 @@ public class ClientManager {
             case MESSAGE:
                 SwingUtilities.invokeLater(()->{
                     String content = message.getContent();
-                    if (content != null && !content.isBlank()) {
+                    String target = message.getTarget();
+                    if (content != null && !content.isBlank() && target == null) {
                         mainFrame.printMessage(message);
-                    } else if (message.isSuccess() && message.getInfo() != null) {
-                        // Some handlers place user-visible text into info; fall back to that
-                        Message m = new Message(MessageType.MESSAGE);
-                        m.setSender(message.getSender());
-                        m.setSuccess(true);
-                        m.setContent(message.getInfo());
-                        mainFrame.printMessage(m);
+                    } else if(target!= null && !target.isBlank()){
+                        mainFrame.printGroupMessage(message);
                     } else {
                         // nothing to show for this MESSAGE; log for debugging
                         System.out.println("Empty MESSAGE received from " + message.getSender() + "; info=" + message.getInfo());
