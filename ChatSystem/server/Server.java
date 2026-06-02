@@ -1,16 +1,15 @@
 package ChatSystem.server;
 
 import ChatSystem.database.DBConnection;
-import ChatSystem.server.dao.GroupDAO;
-import ChatSystem.server.dao.MessageDAO;
-import ChatSystem.server.dao.UserDAO;
-
+import ChatSystem.server.dao.*;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.function.Consumer;
 
 public class Server {
-    private final int PORT = 12345;
+    private ServerSocket serverSocket;
+    private volatile boolean isRunning = false;
     
     final SessionManager sessionManager;
     final MessageRouter messageRouter;
@@ -18,39 +17,71 @@ public class Server {
     final GroupDAO groupDAO;
     final MessageDAO messageDAO;
 
+    // (MỚI) Callback ghi log ra màn hình
+    private Consumer<String> logListener;
+
     public Server() {
-        // 1. Khởi tạo các thành phần chia sẻ (Shared Resources)
         DBConnection dbConnection = new DBConnection();
         this.userDAO = new UserDAO(dbConnection);
         this.groupDAO = new GroupDAO(dbConnection);
         this.messageDAO = new MessageDAO(dbConnection);
         this.sessionManager = new SessionManager();
-
-        // 2. Khởi tạo MessageRouter để điều phối gói tin
         this.messageRouter = new MessageRouter(sessionManager, userDAO, groupDAO, messageDAO);
     }
 
-    public void start() {
-        try (ServerSocket serverSocket = new ServerSocket(12345)) {
-            System.out.println("Server is running on port " + PORT + "...");
+    public void setLogListener(Consumer<String> logListener) {
+        this.logListener = logListener;
+    }
 
-
-            // 3. Vòng lặp vô hạn để liên tục tiếp nhận các kết nối mới từ Client
-            while (true) {
-                Socket clientSocket = serverSocket.accept();
-                System.out.println("New client connected: " + clientSocket.getInetAddress());
-
-                // 4. Khởi tạo ClientHandler và chạy nó trên một Thread mới
-                ClientHandler clientHandler = new ClientHandler(clientSocket, messageRouter);
-                new Thread(clientHandler::listen).start();
-            }
-        } catch (IOException e) {
-            System.err.println("Server error: " + e.getMessage());
+    private void log(String message) {
+        if (logListener != null) {
+            logListener.accept(message);
+        } else {
+            System.out.println(message);
         }
     }
 
-    public static void main(String[] args) {
-        Server server = new Server();
-        server.start();
+    public SessionManager getSessionManager() {
+        return sessionManager;
+    }
+
+    // (SỬA) Hàm start không còn chặn luồng
+    public void startServer(int port) {
+        if (isRunning) return;
+        isRunning = true;
+        
+        // Đưa vòng lặp accept() vào Thread mới
+        new Thread(() -> {
+            try {
+                serverSocket = new ServerSocket(port);
+                log("Server is running on port " + port + "...");
+
+                while (isRunning) {
+                    Socket clientSocket = serverSocket.accept();
+                    log("New client connected: " + clientSocket.getInetAddress());
+
+                    ClientHandler clientHandler = new ClientHandler(clientSocket, messageRouter);
+                    new Thread(clientHandler::listen).start();
+                }
+            } catch (IOException e) {
+                if (isRunning) {
+                    log("Server error: " + e.getMessage());
+                } else {
+                    log("Server stopped.");
+                }
+            }
+        }).start();
+    }
+
+    // (MỚI) Hàm dừng server an toàn
+    public void stopServer() {
+        isRunning = false;
+        try {
+            if (serverSocket != null && !serverSocket.isClosed()) {
+                serverSocket.close(); // Lệnh này sẽ ngắt vòng lặp accept() đang chờ
+            }
+        } catch (IOException e) {
+            log("Error stopping server: " + e.getMessage());
+        }
     }
 }
