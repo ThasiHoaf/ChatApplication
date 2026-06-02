@@ -286,9 +286,9 @@ public class MessageRouter {
     }
 
     private synchronized void handleCreateGroup(Message message, ClientHandler handler){
-
         String groupName = message.getGroupName();
-        if(groupName == null || groupName.isBlank()){
+        
+        if(groupName != null && !groupName.isBlank()){
             String password = message.getContent();
             String sender = message.getSender();
             for (Group group : groupDAO.getGroups()){
@@ -296,39 +296,18 @@ public class MessageRouter {
                     Message errorMessage = new Message(MessageType.CREATE_GROUP);
                     errorMessage.setSuccess(false);
                     errorMessage.setInfo("Group name already exists");
-                    System.out.println("Group with name " + message.getGroupName() + " has already existed.");
                     handler.sendMessage(errorMessage);
                     return;
                 }
             }
-            Group newGroup = new Group(groupName, sender,password);
+            Group newGroup = new Group(groupName, sender, password);
             groupDAO.addGroup(newGroup);
             Message successMessage = new Message(MessageType.CREATE_GROUP);
             successMessage.setSuccess(true);
             successMessage.setInfo("Group created successfully");
-            System.out.println(message.getGroupName() + " created successfully");
             handler.sendMessage(successMessage);
             sessionManager.broadcast(successMessage);
-            return;
-        } else {
-            String target = message.getTarget();
-            Message privateMessage = new Message(MessageType.CREATE_GROUP);
-            privateMessage.setSender(message.getSender());
-            privateMessage.setTarget(target);
-            privateMessage.setSuccess(true);
-            privateMessage.setInfo("Private chat created successfully");
-            ClientHandler targetHandler = sessionManager.getHandler(target);
-            if (targetHandler != null) {
-                targetHandler.sendMessage(privateMessage);
-            } else {
-                Message errorMessage = new Message(MessageType.CREATE_GROUP);
-                errorMessage.setSuccess(false);
-                errorMessage.setInfo("Target user is offline");
-                handler.sendMessage(errorMessage);
-            }
-
         }
-
     }
 
     private void handleLogout(Message message, ClientHandler handler) {

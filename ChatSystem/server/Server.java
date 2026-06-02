@@ -29,6 +29,14 @@ public class Server {
         this.messageRouter = new MessageRouter(sessionManager, userDAO, groupDAO, messageDAO);
     }
 
+    // (MỚI) Thêm lại hàm main cho chế độ Headless (Chạy ngầm trong Docker)
+    public static void main(String[] args) {
+        Server server = new Server();
+        server.startServer(12345);
+        System.out.println("Server is running in Headless mode (No GUI)...");
+    }
+
+
     public void setLogListener(Consumer<String> logListener) {
         this.logListener = logListener;
     }

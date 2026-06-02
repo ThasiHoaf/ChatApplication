@@ -179,10 +179,11 @@ public class LobbyPanel extends JPanel {
             @Override
             public void mouseClicked(java.awt.event.MouseEvent evt){
                 if(evt.getClickCount() == 2){
-                    Message message = new Message(MessageType.CREATE_GROUP);
-                    message.setSender(user.getUserName());
-                    message.setTarget(memberList.getSelectedValue());
-                    manager.sendMessage(message);
+                    String selectedUser = memberList.getSelectedValue();
+                    // Đảm bảo không tự mở tab chat với chính mình
+                    if (selectedUser != null && !selectedUser.equals(user.getUserName())) {
+                        manager.openPrivateChatTab(selectedUser);
+                    }
                 }
             }
         });

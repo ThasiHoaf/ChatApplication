@@ -53,8 +53,28 @@ public class MainFrame extends JFrame {
     }
 
     public void addPrivateTab(String privateName){
+        // Kiểm tra xem tab đã tồn tại chưa
+        for (int i = 0; i < tabbedPane.getTabCount(); i++) {
+            if (tabbedPane.getTitleAt(i).equals(privateName)) {
+                tabbedPane.setSelectedIndex(i); // Chuyển focus sang tab này
+                return;
+            }
+        }
         GroupPanel privatePanel = new GroupPanel(clientManager, privateName, currentUser, false);
         tabbedPane.addTab(privateName, privatePanel);
+        tabbedPane.setSelectedComponent(privatePanel);
+    }
+
+    public void printPrivateMessage(Message message, String tabName) {
+        for (int i = 0; i < tabbedPane.getTabCount(); i++) {
+            if (tabbedPane.getTitleAt(i).equals(tabName)) {
+                Component comp = tabbedPane.getComponentAt(i);
+                if (comp instanceof GroupPanel) {
+                    ((GroupPanel) comp).setChatArea(message.getContent(), message.getSender());
+                }
+                break;
+            }
+        }
     }
     public void setLobbyFileList(String listFile){
         lobbyPanel.setFileList(listFile);

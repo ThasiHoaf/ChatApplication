@@ -176,11 +176,16 @@ public class ClientManager {
                     String target = message.getTarget();
                     if (content != null && !content.isBlank() && target == null) {
                         mainFrame.printMessage(message);
-                    } else if(target!= null && !target.isBlank()){
-                        mainFrame.printGroupMessage(message);
+                    } else if(target != null && !target.isBlank()){
+                        // Xác định tên Tab: 
+                        // - Nếu mình là người gửi (Server dội lại), tab sẽ mang tên người nhận (target).
+                        // - Nếu mình là người nhận, tab sẽ mang tên người gửi (sender).
+                        String tabName = message.getSender().equals(mainFrame.getCurrentUser().getUserName()) ? target : message.getSender();
+                        
+                        mainFrame.addPrivateTab(tabName); // Mở tab nếu chưa có
+                        mainFrame.printPrivateMessage(message, tabName); // In tin nhắn
                     } else {
-                        // nothing to show for this MESSAGE; log for debugging
-                        System.out.println("Empty MESSAGE received from " + message.getSender() + "; info=" + message.getInfo());
+                        System.out.println("Empty MESSAGE received...");
                     }
                 });
                 break;
@@ -421,6 +426,14 @@ public class ClientManager {
             default:
                 break;
         }
+    }
+
+    public void openPrivateChatTab(String targetUser) {
+        SwingUtilities.invokeLater(() -> {
+            if (mainFrame != null) {
+                mainFrame.addPrivateTab(targetUser);
+            }
+        });
     }
 
     
