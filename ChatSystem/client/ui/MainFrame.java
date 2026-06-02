@@ -52,13 +52,8 @@ public class MainFrame extends JFrame {
         tabbedPane.addTab(groupName, groupPanel);
     }
 
-    public void addFileToList(String fileName) {
-        if (fileName == null || fileName.isBlank()) return;
-        SwingUtilities.invokeLater(() -> {
-            if (lobbyPanel != null) {
-                lobbyPanel.addFileToList(fileName);
-            }
-        });
+    public void setLobbyFileList(String listFile){
+        lobbyPanel.setFileList(listFile);
     }
 
     public static void main(String[] args) {
@@ -125,6 +120,17 @@ public class MainFrame extends JFrame {
         }
     }
 
+    public void setGroupFileList(String groupName, String listFile){
+        for(int i = 0; i < tabbedPane.getTabCount(); i ++){
+            if(tabbedPane.getTitleAt(i).equals(groupName)){
+                Component comp = tabbedPane.getComponentAt(i);
+                if(comp instanceof GroupPanel) {
+                    ((GroupPanel) comp).setFileList(listFile);
+                }
+                break;
+            }
+        }
+    }
     public void setGroupHistory(String groupName, String content, String time){
         for(int i = 0; i < tabbedPane.getTabCount(); i ++){
             if(tabbedPane.getTitleAt(i).equals(groupName)) {

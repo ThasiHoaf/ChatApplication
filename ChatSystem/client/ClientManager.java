@@ -9,12 +9,11 @@ import javax.swing.*;
 import java.time.format.DateTimeFormatter;
 
 public class ClientManager {
+
     private Socket socket;
     private ObjectOutputStream out;
     private ObjectInputStream in;
     private MainFrame mainFrame;
-
-
    
  
     public boolean connect(String host, int port) {
@@ -98,6 +97,10 @@ public class ClientManager {
                         Message request = new Message(MessageType.USER_LIST);
                         request.setSender(message.getSender());
                         sendMessage(request);
+
+                        Message fileListReq = new Message(MessageType.FILE_LIST);
+                        fileListReq.setSender(message.getSender());
+                        sendMessage(fileListReq);
 
                         User user = new User(message.getSender(), message.getContent());
                         mainFrame = new MainFrame(this, user);
@@ -230,7 +233,7 @@ public class ClientManager {
                             // Use DB id propagated from server (fallback to 0)
                             long id = message.getId() != null ? message.getId() : 0L;
                             mainFrame.setHistory(id, content, time);
-                            mainFrame.addFileToList(message.getFileName());
+                            
                         }
 
                     }
@@ -284,7 +287,10 @@ public class ClientManager {
                                     mainFrame.printMessage(m);
                                     // update Files/Media panel for lobby
                                     if (mainFrame != null) {
-                                        mainFrame.addFileToList(fileName);
+                                        Message fileListReq = new Message(MessageType.FILE_LIST);
+                                        fileListReq.setSender(message.getSender());
+                                        fileListReq.setGroupName(message.getGroupName()); // null for lobby
+                                        sendMessage(fileListReq);
                                     }
                                 } else {
                                     message.setContent(display);
@@ -363,7 +369,59 @@ public class ClientManager {
                 });
 
                 break;
+            case FILE_LIST:
+                SwingUtilities.invokeLater(()->{
+                    if(message.isSuccess()){
+                        String groupName = message.getGroupName();
+                        String content = message.getContent();
+                        if(content != null && !content.isBlank()){
+                            String[] files = content.split(",");
+                            if(groupName != null){
+                                if(mainFrame != null){
+                                    mainFrame.setGroupFileList(groupName, content);
+                                }
+                            } else {
+                                if(mainFrame != null){
+                                    mainFrame.setLobbyFileList(content);
+                                }
+                            }
+                        }
+                    }
+                });
+                break;
+            case FILE_DOWNLOAD:
+                SwingUtilities.invokeLater(()->{
+                    if(message.isSuccess()){
+                        try {
+                            byte[] data = message.getFileData();
+                            String fileName = message.getFileName();
+                            
+                            if (data != null && fileName != null) {
+                                // 1. Tạo thư mục chứa file tải về ở Client
+                                java.nio.file.Path downloads = java.nio.file.Paths.get("client_downloads");
+                                java.nio.file.Files.createDirectories(downloads);
+                                
+                                // 2. Lưu file với tiền tố thời gian để tránh trùng tên
+                                String safeName = System.currentTimeMillis() + "_" + fileName;
+                                java.nio.file.Path outPath = downloads.resolve(safeName);
+                                java.nio.file.Files.write(outPath, data);
 
+                                // 3. Mở file vừa lưu
+                                if (java.awt.Desktop.isDesktopSupported()) {
+                                    java.awt.Desktop.getDesktop().open(outPath.toFile());
+                                } else {
+                                    JOptionPane.showMessageDialog(null, "Desktop is not supported. File saved to: " + outPath.toString(), "Info", JOptionPane.INFORMATION_MESSAGE);
+                                }
+                            }
+                        } catch (IOException e) {
+                            JOptionPane.showMessageDialog(null, "Couldn't save or open file: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+                        }
+                    } else {
+                        // Xử lý khi có lỗi từ Server trả về (ví dụ: File not found)
+                        JOptionPane.showMessageDialog(null, message.getInfo(), "Download Error", JOptionPane.ERROR_MESSAGE);
+                    }
+                });
+                break;
             default:
                 break;
         }

@@ -4,6 +4,8 @@ import ChatSystem.server.dao.*;
 import ChatSystem.shared.*;
 
 import java.util.ArrayList;
+import java.nio.file.*;
+import java.util.stream.Collectors;
 import java.util.List;
 
 public class MessageRouter {
@@ -58,6 +60,14 @@ public class MessageRouter {
                 handleUserList(message, senderHandler);
                 break;
 
+            case FILE_DOWNLOAD:
+                handleDownloadFile(message, senderHandler);
+                break;
+
+            case FILE_LIST:
+                handleFileList(message, senderHandler);
+                break;
+
             default:
                 System.err.println("Unknown message type: " + message.getMessageType());
                 Message errorMessage = new Message(MessageType.ERROR);
@@ -66,6 +76,36 @@ public class MessageRouter {
                 senderHandler.sendMessage(errorMessage);
                 break;
         }
+    }
+
+    private void handleFileList(Message message, ClientHandler handler) {
+        String groupName = message.getGroupName();
+        Message fileListMessage = new Message(MessageType.FILE_LIST);
+        List<String> fileNames = new ArrayList<>();
+        if (groupName == null) {
+            // return files in lobby
+            try {
+                fileNames = Files.list(Paths.get("downloads"))
+                    .filter(Files::isRegularFile)
+                    .map(Path::getFileName)
+                    .map(Path::toString)
+                    .collect(Collectors.toList());
+            }
+            catch (Exception e) {
+                System.err.println("Error reading files: " + e.getMessage());
+            }
+        } else {
+            // return files in the specified group
+            for (Message m : messageDAO.getMessages()) {
+                if (groupName.equals(m.getGroupName()) && m.getFileName() != null) {
+                    fileNames.add(m.getFileName());
+                }
+            }
+        }
+        fileListMessage.setSuccess(true);
+        fileListMessage.setContent(String.join(",", fileNames));
+        fileListMessage.setGroupName(groupName);
+        handler.sendMessage(fileListMessage);
     }
 
     private void handleFileMessage(Message message, ClientHandler handler) {
@@ -103,6 +143,35 @@ public class MessageRouter {
             }
         }
     }
+
+    private void handleDownloadFile(Message message, ClientHandler handler){
+        String fileName = message.getFileName();
+        Path filePath = Paths.get("downloads", fileName);
+        if (Files.exists(filePath) && Files.isRegularFile(filePath)) {
+            try {
+                byte[] fileData = Files.readAllBytes(filePath);
+                Message fileMessage = new Message(MessageType.FILE_DOWNLOAD);
+                fileMessage.setFileData(fileData);
+                fileMessage.setFileName(fileName);
+                fileMessage.setContent(fileName);
+                fileMessage.setSuccess(true);
+                fileMessage.setSender("SERVER");
+                handler.sendMessage(fileMessage);
+            } catch (Exception e) {
+                System.err.println("Error reading file: " + e.getMessage());
+                Message errorMessage = new Message(MessageType.ERROR);
+                errorMessage.setSuccess(false);
+                errorMessage.setInfo("Error reading file: " + e.getMessage());
+                handler.sendMessage(errorMessage);
+            }
+        } else {
+            Message errorMessage = new Message(MessageType.ERROR);
+            errorMessage.setSuccess(false);
+            errorMessage.setInfo("File not found");
+            handler.sendMessage(errorMessage);
+        }
+    }
+
 
     private void handleHistoryDelete(Message message, ClientHandler handler) {
         String identifier = message.getContent();

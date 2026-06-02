@@ -114,6 +114,7 @@ public class LobbyPanel extends JPanel {
                     if (index >= 0) {
                         String fileName = fileListModel.getElementAt(index);
                         Message message = new Message(MessageType.FILE_DOWNLOAD);
+                        message.setFileName(fileName);
                         message.setContent(fileName);
                         message.setSender(user.getUserName());
                         manager.sendMessage(message);
@@ -121,6 +122,7 @@ public class LobbyPanel extends JPanel {
                 }
             }
         });
+        
         logoutBtn.addActionListener(e->{
             Message message = new Message(MessageType.LOGOUT);
             message.setSender(user.getUserName());
@@ -143,6 +145,14 @@ public class LobbyPanel extends JPanel {
             
         });
 
+        sendBtn.addKeyListener(new java.awt.event.KeyAdapter() {
+            @Override
+            public void keyPressed(java.awt.event.KeyEvent evt) {
+                if (evt.getKeyCode() == java.awt.event.KeyEvent.VK_ENTER) {
+                    sendBtn.doClick();
+                }
+            }
+        });
         historyBtn.addActionListener(e -> {
             // Clear global history view to avoid duplicates
             manager.clearHistoryView();
@@ -199,13 +209,12 @@ public class LobbyPanel extends JPanel {
         }
     }
 
-    public void addFileToList(String fileName){
-        SwingUtilities.invokeLater(() -> {
-            if(!fileListModel.contains(fileName) && !fileName.isBlank() && fileName != null){ {
-                fileListModel.addElement(fileName);
-            }
+    public void setFileList(String listFile){
+        fileListModel.clear();
+        String[] files = listFile.split(",");
+        for(String f : files){
+            fileListModel.addElement(f.trim());
         }
-    });
     }
 
     public void clearFileList(){

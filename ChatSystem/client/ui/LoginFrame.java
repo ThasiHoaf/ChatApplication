@@ -16,7 +16,7 @@ public class LoginFrame extends JFrame {
         this.clientManager = clientManager;
         
         // 1. Kết nối tới Server ngay khi cửa sổ ứng dụng mở lên
-        if (clientManager.connect("192.168.1.13", 12345)) {
+        if (clientManager.connect("localhost", 12345)) {
             // 2. Tách vòng lặp lắng nghe tin nhắn sang một Thread mới để chống treo GUI
             new Thread(() -> clientManager.listenMessage()).start();
         } else {

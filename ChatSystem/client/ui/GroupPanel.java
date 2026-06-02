@@ -20,6 +20,8 @@ public class GroupPanel extends JPanel {
     private JList<String> memberJList;
     private ClientManager clientManager;
     private JTextArea historyArea;
+    private JList<String> fileList;
+    private DefaultListModel<String> fileListModel;
 
     public GroupPanel(ClientManager manager,String groupName, User user) {
         setLayout(new BorderLayout());
@@ -84,6 +86,15 @@ public class GroupPanel extends JPanel {
         functionPanel.add(inputPanel);
 
         add(functionPanel, BorderLayout.SOUTH);
+        // File list
+        fileListModel = new DefaultListModel<>();
+        fileList = new JList<>(fileListModel);
+        JPanel filePanel = new JPanel(new BorderLayout());
+        filePanel.add(new JLabel("File List"), BorderLayout.NORTH);
+        filePanel.add(new JScrollPane(fileList), BorderLayout.CENTER);
+        add(filePanel, BorderLayout.EAST);
+        // Add event listeners
+
 
         addEventListeners(user);
     }
@@ -145,4 +156,14 @@ public class GroupPanel extends JPanel {
         chatArea.append(sender + ": " + content);
         chatArea.append("\n");
     };
+
+    public void setFileList(String listFile){
+        fileListModel.clear();
+        String files[] = listFile.split(",");
+        for(String f : files){
+            fileListModel.addElement(f.trim());
+        }
+    }
+
+
 }
